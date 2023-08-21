@@ -62,26 +62,13 @@ async fn main() -> Result<(), anyhow::Error> {
         .into_string()
         .expect("os path must be utf8");
 
-    let mut pg_options = args
-        .database_url
-        .as_str()
-        .parse::<sqlx::postgres::PgConnectOptions>()
-        .context("parsing database URL")?
-        .application_name("agent");
-
-    // If a database CA was provided, require that we use TLS with full cert verification.
-    if let Some(ca) = &args.database_ca {
-        pg_options = pg_options
-            .ssl_mode(sqlx::postgres::PgSslMode::VerifyFull)
-            .ssl_root_cert(ca);
-    } else {
-        // Otherwise, prefer TLS but don't require it.
-        pg_options = pg_options.ssl_mode(sqlx::postgres::PgSslMode::Prefer);
-    }
-
-    let pg_pool = sqlx::postgres::PgPool::connect_with(pg_options)
-        .await
-        .context("connecting to database")?;
+    let pg_pool = agent_sql::build_pg_pool(
+        args.database_url.as_str(),
+        args.database_ca.as_ref().map(String::as_str),
+        "agent",
+    )
+    .await
+    .context("connecting to database")?;
 
     let builds_root = resolve_builds_root(&args.consumer_address)
         .await

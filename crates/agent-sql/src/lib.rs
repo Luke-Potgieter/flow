@@ -14,6 +14,10 @@ pub use id::Id;
 mod text_json;
 pub use text_json::TextJson;
 
+// Re-exports of fundamental sqlx types.
+pub type PgPool = sqlx::postgres::PgPool;
+pub type Transaction<'l> = sqlx::Transaction<'l, sqlx::Postgres>;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
 #[sqlx(type_name = "catalog_spec_type")]
 #[sqlx(rename_all = "lowercase")]
@@ -56,4 +60,28 @@ pub enum Capability {
     Read = 0x10,
     Write = 0x20,
     Admin = 0x30,
+}
+
+/// Build a Postgres DB sqlx::Pool.
+pub async fn build_pg_pool(
+    database_url: &str,
+    database_ca: Option<&str>,
+    application_name: &str,
+) -> sqlx::Result<sqlx::postgres::PgPool> {
+    let mut pg_options = database_url
+        .parse::<sqlx::postgres::PgConnectOptions>()?
+        .application_name(application_name);
+
+    // If a database CA was provided, require that we use TLS with full cert verification.
+    if let Some(ca) = database_ca {
+        pg_options = pg_options
+            .ssl_mode(sqlx::postgres::PgSslMode::VerifyFull)
+            .ssl_root_cert(ca);
+    } else {
+        // Otherwise, prefer TLS but don't require it.
+        pg_options = pg_options.ssl_mode(sqlx::postgres::PgSslMode::Prefer);
+    }
+
+    let pg_pool = sqlx::postgres::PgPool::connect_with(pg_options).await?;
+    Ok(pg_pool)
 }
