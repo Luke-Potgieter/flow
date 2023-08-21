@@ -446,17 +446,15 @@ impl validation::ControlPlane for Resolver {
     fn resolve_collections<'a, 'b: 'a>(
         &'a self,
         collections: Vec<models::Collection>,
-        // These parameters are currently required, but can be removed once we're
-        // actually resolving fuzzy pre-built CollectionSpecs from the control plane.
-        temp_build_config: &'b proto_flow::flow::build_api::Config,
-        temp_storage_mappings: &'b [tables::StorageMapping],
     ) -> futures::future::LocalBoxFuture<'a, anyhow::Result<Vec<proto_flow::flow::CollectionSpec>>>
     {
-        async move {
-            // TODO(johnny): Introduce a new RPC for doing fuzzy-search given the list of
-            // collection names, and use that instead to surface mis-spelt name suggestions.
-            // Pair this with a transition to having built specifications in the live_specs table?
+        #[derive(serde::Deserialize, Clone)]
+        struct Row {
+            pub catalog_name: String,
+            pub built_spec: Option<models::RawValue>,
+        }
 
+        async move {
             // NameSelector will return *all* collections, rather than *no*
             // collections, if its selector is empty.
             if collections.is_empty() {
@@ -481,31 +479,21 @@ impl validation::ControlPlane for Resolver {
 
             let columns = vec![
                 "catalog_name",
-                "id",
-                "spec",
-                "spec_type",
-                "updated_at",
-                "last_pub_user_email",
+                "built_spec",
             ];
-            let rows = crate::catalog::fetch_live_specs(self.client.clone(), &list, columns)
+            let rows = crate::catalog::fetch_live_specs::<Row>(self.client.clone(), &list, columns)
                 .await
                 .context("failed to fetch collection specs")?;
 
             tracing::debug!(name=?list.name_selector.name, rows=?rows.len(), "resolved remote collections");
 
             rows.into_iter()
-                .map(|row| {
-                    use crate::catalog::SpecRow;
-                    let def = row
-                        .parse_spec::<models::CollectionDef>()
-                        .context("parsing specification")?;
-
-                    Ok(Self::temp_build_collection_helper(
-                        row.catalog_name,
-                        def,
-                        temp_build_config,
-                        temp_storage_mappings,
-                    )?)
+                .map(|Row{ catalog_name, built_spec}| {
+                    let Some(built_spec) = built_spec else {
+                        anyhow::bail!("collection {catalog_name} is an old specification which must be upgraded to continue. Please contact support for assistance");
+                    };
+                    Ok(serde_json::from_str(built_spec.get())
+                        .with_context(|| format!("failed to parse previously-built specification of {catalog_name}"))?)
                 })
                 .collect::<anyhow::Result<_>>()
         }

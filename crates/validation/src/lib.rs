@@ -51,37 +51,7 @@ pub trait ControlPlane {
     fn resolve_collections<'a, 'b: 'a>(
         &'a self,
         collections: Vec<models::Collection>,
-        // These parameters are currently required, but can be removed once we're
-        // actually resolving fuzzy pre-built CollectionSpecs from the control plane.
-        temp_build_config: &'b proto_flow::flow::build_api::Config,
-        temp_storage_mappings: &'b [tables::StorageMapping],
     ) -> LocalBoxFuture<'a, anyhow::Result<Vec<proto_flow::flow::CollectionSpec>>>;
-
-    // TODO(johnny): this is a temporary helper which supports the transition
-    // to the control-plane holding built specifications.
-    fn temp_build_collection_helper(
-        name: String,
-        spec: models::CollectionDef,
-        build_config: &proto_flow::flow::build_api::Config,
-        storage_mappings: &[tables::StorageMapping],
-    ) -> anyhow::Result<proto_flow::flow::CollectionSpec> {
-        let mut errors = tables::Errors::new();
-
-        if let Some(built_collection) = collection::walk_collection(
-            build_config,
-            &tables::Collection {
-                scope: url::Url::parse("flow://control-plane").unwrap(),
-                collection: models::Collection::new(name),
-                spec,
-            },
-            storage_mappings,
-            &mut errors,
-        ) {
-            Ok(built_collection)
-        } else {
-            anyhow::bail!("unexpected failure building remote collection: {errors:?}")
-        }
-    }
 }
 
 pub async fn validate<C: Connectors, P: ControlPlane>(
@@ -126,16 +96,12 @@ pub async fn validate<C: Connectors, P: ControlPlane>(
 
     // Next resolve all referenced collections which are not in local `collections`.
     let remote_collections = match control_plane
-        .resolve_collections(
-            reference::gather_referenced_collections(
-                captures,
-                collections,
-                materializations,
-                tests,
-            ),
-            build_config,
-            storage_mappings,
-        )
+        .resolve_collections(reference::gather_referenced_collections(
+            captures,
+            collections,
+            materializations,
+            tests,
+        ))
         .await
     {
         Err(err) => {
@@ -154,11 +120,16 @@ pub async fn validate<C: Connectors, P: ControlPlane>(
         }
         Ok(c) => c
             .into_iter()
-            .map(|spec| tables::BuiltCollection {
-                collection: models::Collection::new(&spec.name),
-                scope: url::Url::parse("flow://control-plane").unwrap(),
-                spec,
-                validated: None,
+            .map(|mut spec| {
+                // Clear a derivation (if there is one), as we do not need it when embedding a referenced collection.
+                spec.derivation = None;
+
+                tables::BuiltCollection {
+                    collection: models::Collection::new(&spec.name),
+                    scope: url::Url::parse("flow://control-plane").unwrap(),
+                    spec,
+                    validated: None,
+                }
             })
             .collect::<tables::BuiltCollections>(),
     };
