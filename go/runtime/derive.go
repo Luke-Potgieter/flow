@@ -114,9 +114,8 @@ func (d *Derive) RestoreCheckpoint(shard consumer.Shard) (cp pf.Checkpoint, err 
 	}
 
 	var requestExt = &pr.DeriveRequestExt{
-		Open: &pr.DeriveRequestExt_Open{
-			LogLevel: d.labels.LogLevel,
-		},
+		Labels: &d.labels,
+		Open:   &pr.DeriveRequestExt_Open{},
 	}
 
 	if d.client != nil {

@@ -1,4 +1,4 @@
-use super::anyhow_to_status;
+use crate::anyhow_to_status;
 use anyhow::Context;
 use futures::{channel::mpsc, Stream, StreamExt};
 use prost::Message;

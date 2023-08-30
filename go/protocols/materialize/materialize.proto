@@ -69,8 +69,6 @@ message Request {
       ];
     }
     repeated Binding bindings = 4;
-    // Network ports of this proposed materialization.
-    repeated flow.NetworkPort network_ports = 5;
   }
   Validate validate = 2;
 

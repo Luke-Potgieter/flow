@@ -43,7 +43,7 @@ impl Preview {
             sqlite_uri: sqlite_path,
             interval: flush_interval,
         } = self;
-        let source = local_specs::arg_source_to_url(source, false)?;
+        let source = build::arg_source_to_url(source, false)?;
 
         if self.infer_schema && source.scheme() != "file" {
             anyhow::bail!("schema inference can only be used with a local file --source");
@@ -156,10 +156,15 @@ impl Preview {
             }))
             .await?;
 
-        let mut responses_rx = runtime::derive::Middleware::new(ops::tracing_log_handler, None)
-            .serve(request_rx)
-            .await
-            .map_err(|status| anyhow::anyhow!("{}", status.message()))?;
+        let mut responses_rx = runtime::Runtime::new(
+            String::new(),
+            ops::tracing_log_handler,
+            None,
+            "preview".to_string(),
+        )
+        .serve_derive(request_rx)
+        .await
+        .map_err(|status| anyhow::anyhow!("{}", status.message()))?;
 
         let _opened = responses_rx
             .next()
@@ -210,8 +215,9 @@ impl Preview {
         // Update with an inferred schema and write out the updated Flow spec.
         if let Some(schema) = schema {
             // Reload `sources`, this time without inlining them.
-            let mut sources = local_specs::surface_errors(local_specs::load(&source).await)
-                .expect("sources must load a second time");
+            let mut sources =
+                local_specs::surface_errors(local_specs::load(&source).await.into_result())
+                    .expect("sources must load a second time");
 
             // Find the derivation we just previewed.
             let index = sources

@@ -118,8 +118,6 @@ message Request {
       flow.CollectionSpec collection = 2 [ (gogoproto.nullable) = false ];
     }
     repeated Binding bindings = 4;
-    // Network ports of this proposed capture.
-    repeated flow.NetworkPort network_ports = 5;
   }
   Validate validate = 3;
 

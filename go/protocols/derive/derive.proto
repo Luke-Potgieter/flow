@@ -81,8 +81,6 @@ message Request {
     // framed to the user's filesystem, rather than the filesystem within
     // the connector.
     map<string, string> import_map = 7;
-    // Network ports of this proposed derivation.
-    repeated flow.NetworkPort network_ports = 8;
   }
   Validate validate = 2;
 
@@ -169,13 +167,20 @@ message Response {
       (gogoproto.casttype) = "encoding/json.RawMessage",
       json_name = "configSchema"
     ];
-    // JSON schema of the connecor's lambda configuration.
-    string lambda_config_schema_json = 3 [
+    // JSON schema of the connector's lambda configuration.
+    // The "resource" terminology is used with Response.Spec
+    // only for symmetry with the capture and materialization protocols.
+    // NOTE(johnny): We can encapsulate separate lambda config vs
+    // shuffle lambda config schemas by encapsulating them as separate
+    // definitions within the resource config schema.
+    string resource_config_schema_json = 3 [
       (gogoproto.casttype) = "encoding/json.RawMessage",
-      json_name = "lambdaConfigSchema"
+      json_name = "resourceConfigSchema"
     ];
     // URL for connector's documention.
     string documentation_url = 4;
+    // Optional OAuth2 configuration.
+    flow.OAuth2 oauth2 = 5;
   }
   Spec spec = 1;
 

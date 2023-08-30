@@ -196,9 +196,9 @@ fn parse_open(
         config_json,
         transforms,
         ..
-    } = derivation.unwrap();
+    } = derivation.as_ref().unwrap();
 
-    let config: Config = serde_json::from_str(&config_json)
+    let config: Config = serde_json::from_str(config_json)
         .with_context(|| format!("failed to parse SQLite configuration: {config_json}"))?;
 
     let transforms: Vec<Transform> = transforms
@@ -212,7 +212,7 @@ fn parse_open(
                 ..
             } = transform;
 
-            let source = source.unwrap();
+            let source = source.as_ref().unwrap();
             let params = source
                 .projections
                 .iter()
@@ -224,9 +224,9 @@ fn parse_open(
             })?;
 
             Ok(Transform {
-                name,
+                name: name.clone(),
                 block,
-                source: source.name,
+                source: source.name.clone(),
                 params,
             })
         })

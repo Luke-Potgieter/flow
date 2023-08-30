@@ -1002,9 +1002,6 @@ impl serde::Serialize for request::Validate {
         if !self.import_map.is_empty() {
             len += 1;
         }
-        if !self.network_ports.is_empty() {
-            len += 1;
-        }
         let mut struct_ser = serializer.serialize_struct("derive.Request.Validate", len)?;
         if self.connector_type != 0 {
             let v = super::flow::collection_spec::derivation::ConnectorType::from_i32(self.connector_type)
@@ -1033,9 +1030,6 @@ impl serde::Serialize for request::Validate {
         if !self.import_map.is_empty() {
             struct_ser.serialize_field("importMap", &self.import_map)?;
         }
-        if !self.network_ports.is_empty() {
-            struct_ser.serialize_field("networkPorts", &self.network_ports)?;
-        }
         struct_ser.end()
     }
 }
@@ -1058,8 +1052,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
             "projectRoot",
             "import_map",
             "importMap",
-            "network_ports",
-            "networkPorts",
         ];
 
         #[allow(clippy::enum_variant_names)]
@@ -1071,7 +1063,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
             ShuffleKeyTypes,
             ProjectRoot,
             ImportMap,
-            NetworkPorts,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1100,7 +1091,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
                             "shuffleKeyTypes" | "shuffle_key_types" => Ok(GeneratedField::ShuffleKeyTypes),
                             "projectRoot" | "project_root" => Ok(GeneratedField::ProjectRoot),
                             "importMap" | "import_map" => Ok(GeneratedField::ImportMap),
-                            "networkPorts" | "network_ports" => Ok(GeneratedField::NetworkPorts),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1127,7 +1117,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
                 let mut shuffle_key_types__ = None;
                 let mut project_root__ = None;
                 let mut import_map__ = None;
-                let mut network_ports__ = None;
                 while let Some(k) = map.next_key()? {
                     match k {
                         GeneratedField::ConnectorType => {
@@ -1174,12 +1163,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
                                 map.next_value::<std::collections::BTreeMap<_, _>>()?
                             );
                         }
-                        GeneratedField::NetworkPorts => {
-                            if network_ports__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("networkPorts"));
-                            }
-                            network_ports__ = Some(map.next_value()?);
-                        }
                     }
                 }
                 Ok(request::Validate {
@@ -1190,7 +1173,6 @@ impl<'de> serde::Deserialize<'de> for request::Validate {
                     shuffle_key_types: shuffle_key_types__.unwrap_or_default(),
                     project_root: project_root__.unwrap_or_default(),
                     import_map: import_map__.unwrap_or_default(),
-                    network_ports: network_ports__.unwrap_or_default(),
                 })
             }
         }
@@ -1783,10 +1765,13 @@ impl serde::Serialize for response::Spec {
         if !self.config_schema_json.is_empty() {
             len += 1;
         }
-        if !self.lambda_config_schema_json.is_empty() {
+        if !self.resource_config_schema_json.is_empty() {
             len += 1;
         }
         if !self.documentation_url.is_empty() {
+            len += 1;
+        }
+        if self.oauth2.is_some() {
             len += 1;
         }
         let mut struct_ser = serializer.serialize_struct("derive.Response.Spec", len)?;
@@ -1796,11 +1781,14 @@ impl serde::Serialize for response::Spec {
         if !self.config_schema_json.is_empty() {
             struct_ser.serialize_field("configSchema", crate::as_raw_json(&self.config_schema_json)?)?;
         }
-        if !self.lambda_config_schema_json.is_empty() {
-            struct_ser.serialize_field("lambdaConfigSchema", crate::as_raw_json(&self.lambda_config_schema_json)?)?;
+        if !self.resource_config_schema_json.is_empty() {
+            struct_ser.serialize_field("resourceConfigSchema", crate::as_raw_json(&self.resource_config_schema_json)?)?;
         }
         if !self.documentation_url.is_empty() {
             struct_ser.serialize_field("documentationUrl", &self.documentation_url)?;
+        }
+        if let Some(v) = self.oauth2.as_ref() {
+            struct_ser.serialize_field("oauth2", v)?;
         }
         struct_ser.end()
     }
@@ -1815,18 +1803,20 @@ impl<'de> serde::Deserialize<'de> for response::Spec {
             "protocol",
             "config_schema_json",
             "configSchema",
-            "lambda_config_schema_json",
-            "lambdaConfigSchema",
+            "resource_config_schema_json",
+            "resourceConfigSchema",
             "documentation_url",
             "documentationUrl",
+            "oauth2",
         ];
 
         #[allow(clippy::enum_variant_names)]
         enum GeneratedField {
             Protocol,
             ConfigSchemaJson,
-            LambdaConfigSchemaJson,
+            ResourceConfigSchemaJson,
             DocumentationUrl,
+            Oauth2,
         }
         impl<'de> serde::Deserialize<'de> for GeneratedField {
             fn deserialize<D>(deserializer: D) -> std::result::Result<GeneratedField, D::Error>
@@ -1850,8 +1840,9 @@ impl<'de> serde::Deserialize<'de> for response::Spec {
                         match value {
                             "protocol" => Ok(GeneratedField::Protocol),
                             "configSchema" | "config_schema_json" => Ok(GeneratedField::ConfigSchemaJson),
-                            "lambdaConfigSchema" | "lambda_config_schema_json" => Ok(GeneratedField::LambdaConfigSchemaJson),
+                            "resourceConfigSchema" | "resource_config_schema_json" => Ok(GeneratedField::ResourceConfigSchemaJson),
                             "documentationUrl" | "documentation_url" => Ok(GeneratedField::DocumentationUrl),
+                            "oauth2" => Ok(GeneratedField::Oauth2),
                             _ => Err(serde::de::Error::unknown_field(value, FIELDS)),
                         }
                     }
@@ -1873,8 +1864,9 @@ impl<'de> serde::Deserialize<'de> for response::Spec {
             {
                 let mut protocol__ = None;
                 let mut config_schema_json__ : Option<Box<serde_json::value::RawValue>> = None;
-                let mut lambda_config_schema_json__ : Option<Box<serde_json::value::RawValue>> = None;
+                let mut resource_config_schema_json__ : Option<Box<serde_json::value::RawValue>> = None;
                 let mut documentation_url__ = None;
+                let mut oauth2__ = None;
                 while let Some(k) = map.next_key()? {
                     match k {
                         GeneratedField::Protocol => {
@@ -1891,11 +1883,11 @@ impl<'de> serde::Deserialize<'de> for response::Spec {
                             }
                             config_schema_json__ = Some(map.next_value()?);
                         }
-                        GeneratedField::LambdaConfigSchemaJson => {
-                            if lambda_config_schema_json__.is_some() {
-                                return Err(serde::de::Error::duplicate_field("lambdaConfigSchema"));
+                        GeneratedField::ResourceConfigSchemaJson => {
+                            if resource_config_schema_json__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("resourceConfigSchema"));
                             }
-                            lambda_config_schema_json__ = Some(map.next_value()?);
+                            resource_config_schema_json__ = Some(map.next_value()?);
                         }
                         GeneratedField::DocumentationUrl => {
                             if documentation_url__.is_some() {
@@ -1903,13 +1895,20 @@ impl<'de> serde::Deserialize<'de> for response::Spec {
                             }
                             documentation_url__ = Some(map.next_value()?);
                         }
+                        GeneratedField::Oauth2 => {
+                            if oauth2__.is_some() {
+                                return Err(serde::de::Error::duplicate_field("oauth2"));
+                            }
+                            oauth2__ = map.next_value()?;
+                        }
                     }
                 }
                 Ok(response::Spec {
                     protocol: protocol__.unwrap_or_default(),
                     config_schema_json: config_schema_json__.map(|r| Box::<str>::from(r).into()).unwrap_or_default(),
-                    lambda_config_schema_json: lambda_config_schema_json__.map(|r| Box::<str>::from(r).into()).unwrap_or_default(),
+                    resource_config_schema_json: resource_config_schema_json__.map(|r| Box::<str>::from(r).into()).unwrap_or_default(),
                     documentation_url: documentation_url__.unwrap_or_default(),
+                    oauth2: oauth2__,
                 })
             }
         }

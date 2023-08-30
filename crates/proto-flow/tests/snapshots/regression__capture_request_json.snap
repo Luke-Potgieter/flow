@@ -85,16 +85,6 @@ expression: json_test(msg)
           }
         }
       }
-    ],
-    "networkPorts": [
-      {
-        "number": 8080,
-        "protocol": "https",
-        "public": true
-      },
-      {
-        "number": 9000
-      }
     ]
   },
   "apply": {
